@@ -38,6 +38,7 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
  ADD(z3, z4), ADD(z5, z6)              \
  Add(z7, z8)                           \
 
+#define P(R) R
 
 /* alignment */
 __attribute__((__aligned__(32)))
@@ -49,20 +50,23 @@ static const int32_t r_y [8] = {1297, 1601, 2917, 3137, 4357, 5477, 7057, 8101};
 
 void E()
 {
-  
 
-  
+
+
   __m256i e_x = _mm256_load_si256((__m256i*) r_x);
  __m256i e_y = _mm256_load_si256((__m256i*) r_y);
+ __m256 arthox;
 
+                                     // --> bucket
+ /*x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1 */
 
-                                     // --> bucket  
- /*x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y */
+ for(;;)
+ {
+  /* fill up buckets and call it a day */
+  __m256i z0 = _mm256_mulhi_epi16(e_x, e_y);
+ _mm256_permutevar8x32_ps((__m256) e_x, _mm256_set_epi32(0,7,6,5,4,3,2,1)  );
 
- __m256i arthox =_mm256_mulhi_epi16(e_x, e_y);  
-// fill(bucket, &arthox);
-
-
+ }
 
 }
 void main()
