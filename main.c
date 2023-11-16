@@ -42,10 +42,10 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 /* alignment */
 __attribute__((__aligned__(32)))
-static const int32_t r_x[8] = {2, 5, 17, 37, 101, 197, 257, 401};
+static const int32_t r_y[8] = {2, 5, 17, 37, 101, 197, 257, 401};
 /* alignment */
 __attribute__((__aligned__(32)))
-static const int32_t r_y [8] = {1297, 1601, 2917, 3137, 4357, 5477, 7057, 8101};
+static const int32_t r_x [8] = {1297, 1601, 2917, 3137, 4357, 5477, 7057, 8101};
 
 
 void E()
