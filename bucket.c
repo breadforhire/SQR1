@@ -7,52 +7,60 @@
 #include <smmintrin.h>
 
 /* we will fill 8 buckets  */
-struct bucket
+
+
+
+
+
+typedef struct table
 {
 
- /*An avx vector */
- __m256i arr;
- /*integer size of the heap*/
+
+ /*size of the table*/
  ssize_t size;
- /*alloc memory size*/
- ssize_t alloc;
- /*capacity*/
+
  ssize_t capacity;
 
+ __m256i bucket[8];
 
-};
+ /*allocation for memory size*/
+ ssize_t alloc;
+
+} table;
 
 
-typedef struct bucket bucket;
 
 
 
-void *init(ssize_t capacity )
+void *init(ssize_t capacity)
 {
 
-     bucket* arthox = (bucket*)malloc(sizeof(bucket));
-     arthox -> alloc = sizeof(bucket);
+     table* arthox = (table*)malloc(sizeof(table));
+     arthox -> alloc = sizeof(table);
      /**/
      arthox -> size = 0;
-     arthox -> capacity = capacity;
+     arthox -> size = capacity;
 
 
 }
 
-void *fill(struct bucket *bucket, __m256i* data)
+void fill(struct table* table, __m256i data, int key)
 {
 
   /* the init will initialize values */
- memcpy(&bucket -> arr, data, sizeof(&data));
- bucket -> size++;
+
+
+ //&table.bucket[key] =  _mm256_load_si256((__m256i*) data);
+ //table -> size++;
+
+
 
 
 }
 
-void *empty(struct bucket *bucket)
+
+void *empty()
 {
 
-  /*This is dangerous but I like dangerous*/
-  free(bucket);
 
 }
