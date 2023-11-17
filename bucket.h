@@ -19,7 +19,7 @@ struct table
  /*the capacity for the entire */
  ssize_t capacity;
 
- _m256i bucket[8];
+ __m256i bucket[8];
 
  /*allocation for memory size*/
  ssize_t alloc;
