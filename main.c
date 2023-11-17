@@ -1,5 +1,4 @@
 #include "immintrin.h"
-#include "emmintrin.h"
 #include "avx2intrin.h"
 #include <smmintrin.h>
 #include <stdio.h>
@@ -32,50 +31,63 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 /* alignment */
 __attribute__((__aligned__(32)))
-static const int32_t r_y[8] = {2, 5, 17, 37, 101, 197, 257, 401};
+static const int32_t r_y[8] = {2, 4, 8, 16, 32, 64, 128, 256};
 /* alignment */
 __attribute__((__aligned__(32)))
-static const int32_t r_x [8] = {1297, 1601, 2917, 3137, 4357, 5477, 7057, 8101};
+static const int32_t r_x [8] = {2, 4, 8, 16, 32, 64, 128, 256};
 
+__attribute__((__aligned__(32)))
+static const int32_t twos [8] = {2, 2, 2, 2, 2, 2, 2, 2};
 
-void A()
+void A(struct table *table)
 {
 
 
 
 
  /*load resiude*/
-  struct bucket* bucket;
  __m256i e_x = _mm256_load_si256((__m256i*) r_x);
  __m256i e_y = _mm256_load_si256((__m256i*) r_y);
- __m256 arthox;
+ __m256i z0;
+ __m256i z1;
+ __m256i c = _mm256_load_si256((__m256i*) twos);
+
+ __m256i t;
 
  /*init eight buckets for each row*/
  init(_LEN);
+
+
+
 
                                      // --> bucket
  /*x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1 */
  /*shift then add to the bucket*/
  /*_LEN will be our bucket length (there is only one bucket due to the barebones project)*/
- 
+
  for(int i = 0; i < _LEN; ++i)
  {
   /* fill up buckets and call it a day */
-  __m256i z0 = _mm256_mullo_epi32(e_x, e_y);
-  __m256i z1 = _mm256_mullo_epi32(e_x, e_y);
+   z0 = _mm256_mullo_epi16(e_x, e_y);
+   z1 = _mm256_mulhi_epi16(e_x, e_y);
   _mm256_slli_epi32(e_y, 1) ;
-  /*fill every bucket with this value*/
-  fill(bucket, _mm256_add_epi32(z0, z1));
+  /*fill every bucket with vector z0 + z1 */
 
+  /*(x0y8 x1y7 x2y6 x3y5) +  (x4y4  x5y3  x6y2 x7y1  x8y0) */
 
-
+  // table -> bucket[i] = _mm256_add_epi64(z0, z1);
  }
 
+ /*the buckets are filled in reverse for example the first index is x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0 */
+
+ /*t1 = 2(x0x8 + x1x7 + x2x6 + x3x5) + x4^2 */
+ t = _mm256_mulhi_epi16(c, table -> bucket[_LEN % _LEN]);
+
 }
+
 void main()
 {
-
- A();
-
+ struct table *t;
+ A(t);
 
 }
