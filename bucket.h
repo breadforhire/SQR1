@@ -6,17 +6,40 @@
 #include "avx2intrin.h"
 #include <smmintrin.h>
 
-struct bucket *bucket;
 
 
-extern struct bucket *bucket;
+
+struct table
+{
+
+
+ /*size of the table*/
+ ssize_t size;
+
+ /*the capacity for the entire */
+ ssize_t capacity;
+
+ _m256i bucket[8];
+
+ /*allocation for memory size*/
+ ssize_t alloc;
+
+} ;
+
+struct table *table;
+
+
+extern struct table *table;
+
+
 
 /*starts the first bucket*/
 void *init(ssize_t capacity );
 
 
 /* fills the bucket */
-void *fill(struct bucket *bucket, __m256i data);
+void *fill(struct table *table, __m256i data, int key);
 
-/*emptys the bucket*/
-void *empty(struct bucket *bucket);
+
+/*checks if table is empty*/
+void *empty(struct table *table);
