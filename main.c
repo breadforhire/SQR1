@@ -1,7 +1,8 @@
 #include "immintrin.h"
 #include "emmintrin.h"
 #include "avx2intrin.h"
-#include "bucket.h"
+#include <smmintrin.h>
+#include <stdio.h>
 /* This is going to a one month project in which we will implement the 64 bit granger moss primes in tables */
 
 #define _LEN 8
@@ -10,10 +11,12 @@
 #define ADD(A, B) _mm256_add_epi32(A, B)
 #define SUB(A, B) _mm256_sub_epi32(A, B)
 #define XOR(A, B) _mm256_xor_si256(A, B)
-
-
+#define MUL(A ,B) _mm256_mul_epi32(A, B)
 /*
 [
+x0y0 + x1y1 ...
+
+
 x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1,
 x0y1 + x1y0 + x2y8 + x3y7 + x4y6 + x5y5 + x6y4 + x7y3 + x8y2,
 x0y2 + x1y1 + x2y0 + x3y8 + x4y7 + x5y6 + x6y5 + x7y4 + x8y3,
@@ -28,17 +31,9 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 /*1 /  8 */
 
-#define M(z0, z1, z2, z3, z4, z5, z6, z7, z8) \
- MUL(z0, z1), MUL(z2, z3)              \
- MUL(z3, z4), MUL(z5, z6)              \
- MUL(z7, z8)                           \
 
-#define A(z0, z1, z2, z3, z4, z5, z6, z7, z8) \
- ADD(z0, z1), ADD(z2, z3)              \
- ADD(z3, z4), ADD(z5, z6)              \
- Add(z7, z8)                           \
+//#define A(z0, z1, )  ADD(z0, z1)
 
-#define P(R) R
 
 /* alignment */
 __attribute__((__aligned__(32)))
@@ -53,18 +48,24 @@ void E()
 
 
 
-  __m256i e_x = _mm256_load_si256((__m256i*) r_x);
+
+ /*load resiude*/
+ __m256i e_x = _mm256_load_si256((__m256i*) r_x);
  __m256i e_y = _mm256_load_si256((__m256i*) r_y);
  __m256 arthox;
 
                                      // --> bucket
  /*x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1 */
 
- for(;;)
+ /*_LEN will be our bucket length*/
+ for(int i = 0; i < _LEN; ++i)
  {
   /* fill up buckets and call it a day */
-  __m256i z0 = _mm256_mulhi_epi16(e_x, e_y);
- _mm256_permutevar8x32_ps((__m256) e_x, _mm256_set_epi32(0,7,6,5,4,3,2,1)  );
+  __m256i z0 = _mm256_mullo_epi32(e_x, e_y);
+  __m256i z1 = _mm256_mullo_epi32(e_x, e_y);
+  _mm256_slli_epi32(e_y, 1) ;
+  ADD(z0, z1);
+
 
  }
 
@@ -73,4 +74,6 @@ void main()
 {
 
  E();
+
+
 }
