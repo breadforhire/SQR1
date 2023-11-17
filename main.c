@@ -3,15 +3,10 @@
 #include "avx2intrin.h"
 #include <smmintrin.h>
 #include <stdio.h>
+#include "bucket.h"
 /* This is going to a one month project in which we will implement the 64 bit granger moss primes in tables */
 
 #define _LEN 8
-
-
-#define ADD(A, B) _mm256_add_epi32(A, B)
-#define SUB(A, B) _mm256_sub_epi32(A, B)
-#define XOR(A, B) _mm256_xor_si256(A, B)
-#define MUL(A ,B) _mm256_mul_epi32(A, B)
 /*
 [
 x0y0 + x1y1 ...
@@ -43,28 +38,35 @@ __attribute__((__aligned__(32)))
 static const int32_t r_x [8] = {1297, 1601, 2917, 3137, 4357, 5477, 7057, 8101};
 
 
-void E()
+void A()
 {
 
 
 
 
  /*load resiude*/
+  struct bucket* bucket;
  __m256i e_x = _mm256_load_si256((__m256i*) r_x);
  __m256i e_y = _mm256_load_si256((__m256i*) r_y);
  __m256 arthox;
 
+ /*init eight buckets for each row*/
+ init(_LEN);
+
                                      // --> bucket
  /*x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1 */
-
- /*_LEN will be our bucket length*/
+ /*shift then add to the bucket*/
+ /*_LEN will be our bucket length (there is only one bucket due to the barebones project)*/
+ 
  for(int i = 0; i < _LEN; ++i)
  {
   /* fill up buckets and call it a day */
   __m256i z0 = _mm256_mullo_epi32(e_x, e_y);
   __m256i z1 = _mm256_mullo_epi32(e_x, e_y);
   _mm256_slli_epi32(e_y, 1) ;
-  ADD(z0, z1);
+  /*fill every bucket with this value*/
+  fill(bucket, _mm256_add_epi32(z0, z1));
+
 
 
  }
@@ -73,7 +75,7 @@ void E()
 void main()
 {
 
- E();
+ A();
 
 
 }
