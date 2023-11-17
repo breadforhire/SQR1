@@ -1,15 +1,17 @@
 #include <stdlib.h>
 #include "stdint.h"
 #include "string.h"
-
-
+#include "immintrin.h"
+#include "emmintrin.h"
+#include "avx2intrin.h"
+#include <smmintrin.h>
 
 /* we will fill 8 buckets  */
 struct bucket
 {
 
  /*An avx vector */
- void * arr;
+ __m256i arr;
  /*integer size of the heap*/
  ssize_t size;
  /*alloc memory size*/
@@ -25,7 +27,7 @@ typedef struct bucket bucket;
 
 
 
-void *init(struct bucket, ssize_t capacity )
+void *init(ssize_t capacity )
 {
 
      bucket* arthox = (bucket*)malloc(sizeof(bucket));
@@ -37,27 +39,20 @@ void *init(struct bucket, ssize_t capacity )
 
 }
 
-void *fill(struct bucket *bucket, void* data)
+void *fill(struct bucket *bucket, __m256i* data)
 {
 
   /* the init will initialize values */
- memcpy(&bucket -> arr, data, sizeof(data));
+ memcpy(&bucket -> arr, data, sizeof(&data));
  bucket -> size++;
 
 
 }
 
-void *empty(struct bucket *bucket, void* data)
+void *empty(struct bucket *bucket)
 {
 
+  /*This is dangerous but I like dangerous*/
+  free(bucket);
 
-  for(;;)
-  {
-    if (bucket -> arr == NULL)
-    {
-
-      free(bucket);
-      break;
-    }
-  }
 }
