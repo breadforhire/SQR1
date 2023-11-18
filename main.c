@@ -49,7 +49,10 @@ static const int32_t fours [8] = {4, 4, 4, 4, 4, 4, 4, 4};
 __attribute__((__aligned__(32)))
 static const int32_t sixteen_e_2 [8] = {256, 256, 256, 256, 256, 256, 256, 256};
 
+__attribute__((__aligned__(32)))
+static int32_t shift_mask [8] = {0, 1, 2, 3, 4, 5, 6, 7 };
 
+static int32_t temp;
 
 void A(struct table *table)
 {
@@ -62,6 +65,7 @@ void A(struct table *table)
  __m256i e_y = _mm256_load_si256((__m256i*) y_n);
  __m256i z0;
  __m256i z1;
+ __m256i z2;
 
  __m256i constant_two = _mm256_load_si256((__m256i*) twos);
  __m256i constant_sixteen_e2 = _mm256_load_si256((__m256i*) sixteen_e_2 );
@@ -81,32 +85,37 @@ void A(struct table *table)
  /* bucket the entire x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1  as*(x0y8 x1y7 x2y6 x3y5) +  (x4y4  x5y3  x6y2 x7y1  x8y0)  */
  /*shift then add to the bucket*/
 
- for(int i = 0; i < length; ++i)
+
+ for(int i = 0; i < length; i++)
  {
 
-   /*shifts the entire vector*/
-   e_y = _mm256_alignr_epi8(e_y, e_y, 1);
+    z0 = _mm256_mullo_epi32(e_x, e_y);
+    memmove(&shift_mask[i], &shift_mask[i + 1], sizeof(shift_mask) - sizeof(*shift_mask));
+    e_y = _mm256_permutevar8x32_epi32(e_y,  _mm256_load_si256((__m256i*) shift_mask));
+    z1 = z0;
 
-   z0 = _mm256_mullo_epi32(e_x, e_y);
-   z1 = _mm256_mullo_epi32(e_x, e_y);
                                     /*do this with every table*/
-                                    /* x7y1   x8y0 */
+                                    /*x7y1   x8y0   x3y5*/
   /*fill every bucket with vector   [x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0] */
 
-   z0 = _mm256_permutevar8x32_epi32(z0, _mm256_set_epi32(6, 7, 5, 4, 2, 3, 1, 0));
-  fill(table, _mm256_add_epi64(z1, z0), i);
+   /*shift once permutations are fixed so this is fine*/
+    z0 = _mm256_permutevar8x32_epi32(z0, _mm256_set_epi32(1, 0, 7, 6, 5, 4, 3, 2));
+    z2 = _mm256_add_epi32(z1, z0);
+    fill(table, z2, i);
+
 
  }
 
- /*the buckets are filled in reverse for example the first index is x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0 */
- /*t1 = 2(x0x8 + x1x7 + x2x6 + x3x5) + x4^2  */
+ //b_p(table);
+
 
  t1 = _mm256_mulhi_epi16(constant_two, extract(table, length % length));
  t1 = _mm256_add_epi16(t1, constant_sixteen_e2);
 
 
- t2 = _mm256_mulhi_epi16(constant_fours, extract(table, length - 1));
+ t2 = _mm256_mullo_epi16(constant_fours, extract(table, length - 1));
  t2 = _mm256_add_epi64(t2,  constant_fours);
+
 
 
 
