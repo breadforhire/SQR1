@@ -6,6 +6,8 @@
 /* This is going to a one month project in which we will implement the 64 bit granger moss primes in tables */
 
 #define length 8
+/*leaving this empty */
+#define c_t 
 
 /*
 [
@@ -23,7 +25,6 @@ x0y7 + x1y6 + x2y5 + x3y4 + x4y3 + x5y2 + x6y1 + x7y0 + x8y8,
 x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 /*The table above will be z ≡ x y(mod t9 − 1)   and will contain our base values to actually run the program*/
- /*the buckets are filled in reverse for example the first index is x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0 */
 
 
 
@@ -41,6 +42,10 @@ static const int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256};
 __attribute__((__aligned__(32)))
 static const int32_t twos [8] = {2, 2, 2, 2, 2, 2, 2, 2};
 
+/*this provides better efficiency */
+__attribute__((__aligned__(32)))
+static const int32_t sixteen_e_2 [8] = {256, 256, 256, 256, 256, 256, 256, 256};
+
 void A(struct table *table)
 {
 
@@ -54,8 +59,10 @@ void A(struct table *table)
  __m256i z1;
 
  __m256i constant_two = _mm256_load_si256((__m256i*) twos);
+ __m256i constant_sixteen_e2 = _mm256_load_si256((__m256i*) sixteen_e_2 );
 
- __m256i t;
+
+ __m256i t1;
 
 
 
@@ -68,20 +75,23 @@ void A(struct table *table)
  for(int i = 0; i < length; ++i)
  {
 
-   z0 = _mm256_mullo_epi16(e_x, e_y);
-   z1 = _mm256_mulhi_epi16(e_x, e_y);
-   
    /*shifts the entire vector*/
    e_y = _mm256_slli_epi64(e_y, 1) ;
 
-  /*fill every bucket with vector  (x0y8 x1y7 x2y6 x3y5) +  (x4y4  x5y3  x6y2 x7y1  x8y0)  */
-  fill(table, _mm256_add_epi64(z0, z1), i);
+   z0 = _mm256_mulhi_epi16(e_x, e_y);
+                                    /*do this with every table*/
+  /*fill every bucket with vector  (x0y8  x1y7  x2y6 x3y5) +  (x0y8  x1y7  x2y6 x3y5)  */
+  z0 = _mm256_slli_epi64(z0, 4);
+  fill(table, _mm256_add_epi64(z0, z0), i);
+
  }
 
  /*the buckets are filled in reverse for example the first index is x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0 */
- /*t1 = 2(x0x8 + x1x7 + x2x6 + x3x5) + x4^2 */
+ /*t1 = 2(x0x8 + x1x7 + x2x6 + x3x5) + x4^2  */
 
- t = _mm256_mulhi_epi16(constant_two, extract(table, length % length));
+ t1 = _mm256_mulhi_epi16(constant_two, extract(table, length % length));
+ t1 = _mm256_add_epi16(t1, constant_sixteen_e2);
+
 
 }
 
