@@ -7,7 +7,7 @@
 
 #define length 8
 /*leaving this empty */
-#define c_t 
+#define c_t 2
 
 /*
 [
@@ -42,9 +42,14 @@ static const int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256};
 __attribute__((__aligned__(32)))
 static const int32_t twos [8] = {2, 2, 2, 2, 2, 2, 2, 2};
 
+__attribute__((__aligned__(32)))
+static const int32_t fours [8] = {4, 4, 4, 4, 4, 4, 4, 4};
+
 /*this provides better efficiency */
 __attribute__((__aligned__(32)))
 static const int32_t sixteen_e_2 [8] = {256, 256, 256, 256, 256, 256, 256, 256};
+
+
 
 void A(struct table *table)
 {
@@ -60,9 +65,13 @@ void A(struct table *table)
 
  __m256i constant_two = _mm256_load_si256((__m256i*) twos);
  __m256i constant_sixteen_e2 = _mm256_load_si256((__m256i*) sixteen_e_2 );
+ __m256i constant_fours =_mm256_load_si256((__m256i*) fours);
 
 
+
+ __m256i t0;
  __m256i t1;
+ __m256i t2;
 
 
 
@@ -76,13 +85,15 @@ void A(struct table *table)
  {
 
    /*shifts the entire vector*/
-   e_y = _mm256_slli_epi64(e_y, 1) ;
+   e_y = _mm256_alignr_epi8(e_y, e_y, 1);
 
-   z0 = _mm256_mulhi_epi16(e_x, e_y);
+   z0 = _mm256_mul_epi32(e_x, e_y);
+   z1 = _mm256_mul_epi32(e_x, e_y);
                                     /*do this with every table*/
   /*fill every bucket with vector  (x0y8  x1y7  x2y6 x3y5) +  (x0y8  x1y7  x2y6 x3y5)  */
-  z0 = _mm256_slli_epi64(z0, 4);
-  fill(table, _mm256_add_epi64(z0, z0), i);
+
+   z0 = _mm256_permutevar8x32_epi32(z0, _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4));
+  fill(table, _mm256_add_epi64(z1, z0), i);
 
  }
 
@@ -91,6 +102,11 @@ void A(struct table *table)
 
  t1 = _mm256_mulhi_epi16(constant_two, extract(table, length % length));
  t1 = _mm256_add_epi16(t1, constant_sixteen_e2);
+
+
+ t2 = _mm256_mulhi_epi16(constant_fours, extract(table, length - 1));
+ t2 = _mm256_add_epi64(t2,  constant_fours);
+
 
 
 }
