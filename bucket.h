@@ -17,3 +17,9 @@ extern void *fill(struct table *table, __m256i data, int key);
 
 /*extract*/
 extern __m256i extract(struct table *table, int key);
+
+/*free memory*/
+extern void *release(struct table* table);
+
+/*print buckets*/
+extern void b_p(struct table* table);
