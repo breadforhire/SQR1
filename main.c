@@ -87,12 +87,13 @@ void A(struct table *table)
    /*shifts the entire vector*/
    e_y = _mm256_alignr_epi8(e_y, e_y, 1);
 
-   z0 = _mm256_mul_epi32(e_x, e_y);
-   z1 = _mm256_mul_epi32(e_x, e_y);
+   z0 = _mm256_mullo_epi32(e_x, e_y);
+   z1 = _mm256_mullo_epi32(e_x, e_y);
                                     /*do this with every table*/
-  /*fill every bucket with vector  (x0y8  x1y7  x2y6 x3y5) +  (x0y8  x1y7  x2y6 x3y5)  */
+                                    /* x7y1   x8y0 */
+  /*fill every bucket with vector   [x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0] */
 
-   z0 = _mm256_permutevar8x32_epi32(z0, _mm256_set_epi32(3, 2, 1, 0, 7, 6, 5, 4));
+   z0 = _mm256_permutevar8x32_epi32(z0, _mm256_set_epi32(6, 7, 5, 4, 2, 3, 1, 0));
   fill(table, _mm256_add_epi64(z1, z0), i);
 
  }
