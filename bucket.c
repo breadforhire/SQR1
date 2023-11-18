@@ -1,5 +1,3 @@
-#include <stdlib.h>
-#include "stdint.h"
 #include "string.h"
 #include "immintrin.h"
 #include "emmintrin.h"
@@ -31,36 +29,31 @@ typedef struct table
 
 
 
-
-void *init(ssize_t capacity)
+struct table* init(ssize_t capacity)
 {
 
-     table* arthox = (table*)malloc(sizeof(table));
+     struct table* arthox = (table*)malloc(sizeof(table));
      arthox -> alloc = sizeof(table);
-     /**/
      arthox -> size = 0;
      arthox -> size = capacity;
+     return arthox;
 
 
 }
 
-void fill(struct table* table, __m256i data, int key)
+void* fill(struct table* table, __m256i data, int key)
 {
 
-  /* the init will initialize values */
 
-
- //&table.bucket[key] =  _mm256_load_si256((__m256i*) data);
- //table -> size++;
-
-
-
+  table -> bucket[key] =  data;
+  table -> size++;
 
 }
 
 
-void *empty()
+__m256i extract(struct table *table, int key)
 {
 
+  return table -> bucket[key];
 
 }
