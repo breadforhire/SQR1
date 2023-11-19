@@ -24,7 +24,7 @@
     do { \
         __m256i mod = _mm256_set1_epi32(mod_value); \
         vector_assignment = _mm256_and_si256(vector, _mm256_sub_epi32(mod, _mm256_set1_epi32(1))); \
-        vector_assignment = _mm256_broadcastd_epi32(vector_assignment); \
+        /*vector_assignment = _mm256_broadcastd_epi32(vector_assignment);*/ \
     } while (0)
 
 /*
@@ -145,11 +145,11 @@ void A(struct table *table)
  t1 = _mm256_add_epi16(t1, constant_sixteen_e2);
 
  /* we will be constantly rolling and unrolling*/
- printf("%d \n", t1[0]);
+ //printf("%d \n", t1[0]);
  UNROLL(t1, c_t, t0, 0);
  _mm256_extracti128_si256(t0, 0);
 
- printf("%d \n", t1[0]);
+ //printf("%d, %d, %d  \n", t1[0], t0[0], t0[0]);
 
  t2 = _mm256_hadd_epi32(buckets[length - 2], buckets[length - 2]);
  t2 = _mm256_hadd_epi32(t2, t2);
