@@ -1,3 +1,4 @@
+#include "immintrin.h"
 #include "avx2intrin.h"
 #include <smmintrin.h>
 #include <stdio.h>
@@ -34,10 +35,10 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 
 __attribute__((__aligned__(32)))
-static const int32_t x_n[8] = {2, 4, 8, 16, 32, 64, 128, 256, 512};
+static const int32_t x_n[8] = {2, 4, 8, 16, 32, 64, 128, 256};
 
 __attribute__((__aligned__(32)))
-static const int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256, 51};
+static int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256};
 
 __attribute__((__aligned__(32)))
 static const int32_t twos [8] = {2, 2, 2, 2, 2, 2, 2, 2};
@@ -52,7 +53,19 @@ static const int32_t sixteen_e_2 [8] = {256, 256, 256, 256, 256, 256, 256, 256};
 __attribute__((__aligned__(32)))
 static int32_t shift_mask [8] = {0, 1, 2, 3, 4, 5, 6, 7 };
 
-static int32_t temp;
+
+int32_t temp[length];
+
+void shiftArray(int arr[], int size, int shiftBy)
+{
+
+    shiftBy %= size;
+    int buffer[shiftBy];
+    memcpy(buffer, arr + (size - shiftBy), sizeof(int) * shiftBy);
+    memmove(arr + shiftBy, arr, sizeof(int) * (size - shiftBy));
+    memcpy(arr, buffer, sizeof(int) * shiftBy);
+}
+
 
 void A(struct table *table)
 {
@@ -62,11 +75,10 @@ void A(struct table *table)
 
  /*load resiude*/
  __m256i e_x;
- __m256i e_y = _mm256_load_si256((__m256i*) y_n);
+ __m256i e_y;
  __m256i z0;
- __m256i z1;
- __m256i z2;
- __m256i x;
+ __m256i buckets[length];
+
 
  __m256i constant_two = _mm256_load_si256((__m256i*) twos);
  __m256i constant_sixteen_e2 = _mm256_load_si256((__m256i*) sixteen_e_2 );
@@ -90,34 +102,31 @@ void A(struct table *table)
  for(int i = 0; i < length; i++)
  {
 
-    e_x = _mm256_set1_epi32(x_n[i]);
-    z0 = _mm256_mullo_epi32(e_y, e_x);
-    z1 = z0;
-    e_y = _mm256_permutevar8x32_epi32(e_y,  _mm256_load_si256((__m256i*) shift_mask));
-    memmove(&shift_mask[i], &shift_mask[i + 1], sizeof(shift_mask) - sizeof(*shift_mask));
-
 
                                     /*do this with every table*/
                                     /*x7y1   x8y0   x3y5*/
   /*fill every bucket with vector   [x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0] */
 
    /*shift once permutations are fixed so this is fine*/
-   z0 = _mm256_permutevar8x32_epi32(z0, _mm256_set_epi32(1, 0, 7, 6, 5, 4, 3, 2));
-   z2 = _mm256_add_epi32(z1, z0);
-   fill(table, z2, i);
+
+    e_x = _mm256_set1_epi32(x_n[i]);
+    z0 = _mm256_mullo_epi32(_mm256_load_si256((__m256i*) y_n) , _mm256_set1_epi32(x_n[i]));
+    shiftArray(y_n, length, i);
+    _mm256_storeu_si256((__m256i*)temp, z0);
+    shiftArray(temp, length, i);
+
+
+
 
  }
 
-// b_p(table);
 
-
- t1 = _mm256_mulhi_epi16(constant_two, extract(table, length % length));
+ //t1 = buckets[length];
  t1 = _mm256_add_epi16(t1, constant_sixteen_e2);
 
 
  t2 = _mm256_mullo_epi16(constant_fours, extract(table, length - 1));
- t2 = _mm256_add_epi64(t2,  constant_fours);
-
+ //t2 = _mm256_add_epi64(t2,  constant_fours);
 
 
 
