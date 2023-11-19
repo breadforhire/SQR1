@@ -26,7 +26,77 @@ x0y7 + x1y6 + x2y5 + x3y4 + x4y3 + x5y2 + x6y1 + x7y0 + x8y8,
 x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 /*The table above will be z ≡ x y(mod t9 − 1)   and will contain our base values to actually run the program*/
+/*2, 2, 4
+4, 2, 8
+8, 2, 16
+16, 2, 32
+32, 2, 64
+64, 2, 128
+128, 2, 256
+256, 2, 512
 
+256, 4, 1024
+2, 4, 8
+4, 4, 16
+8, 4, 32
+16, 4, 64
+32, 4, 128
+64, 4, 256
+128, 4, 512
+
+64, 8, 512
+128, 8, 1024
+256, 8, 2048
+2, 8, 16
+4, 8, 32
+8, 8, 64
+16, 8, 128
+32, 8, 256
+
+8, 16, 128
+16, 16, 256
+32, 16, 512
+64, 16, 1024
+128, 16, 2048
+256, 16, 4096
+2, 16, 32
+4, 16, 64
+
+128, 32, 4096
+256, 32, 8192
+2, 32, 64
+4, 32, 128
+8, 32, 256
+16, 32, 512
+32, 32, 1024
+64, 32, 2048
+
+4, 64, 256
+8, 64, 512
+16, 64, 1024
+32, 64, 2048
+64, 64, 4096
+128, 64, 8192
+256, 64, 16384
+2, 64, 128
+
+16, 128, 2048
+32, 128, 4096
+64, 128, 8192
+128, 128, 16384
+256, 128, 32768
+2, 128, 256
+4, 128, 512
+8, 128, 1024
+
+32, 256, 8192
+64, 256, 16384
+128, 256, 32768
+256, 256, 65536
+2, 256, 512
+4, 256, 1024
+8, 256, 2048
+16, 256, 4096 */
 
 
 
@@ -77,6 +147,7 @@ void A(struct table *table)
  __m256i e_x;
  __m256i e_y;
  __m256i z0;
+ __m256i z1;
  __m256i buckets[length];
 
 
@@ -115,6 +186,11 @@ void A(struct table *table)
     _mm256_storeu_si256((__m256i*)temp, z0);
     shiftArray(temp, length, i);
 
+    z1 = _mm256_loadu_si256((__m256i*)temp);
+
+    int32_t finalSum = temp[0] + temp[1] + temp[2] + temp[3];
+    buckets[i] = _mm256_set1_epi32(finalSum);
+
 
 
 
@@ -122,10 +198,11 @@ void A(struct table *table)
 
 
  //t1 = buckets[length];
- t1 = _mm256_add_epi16(t1, constant_sixteen_e2);
+ t1 = _mm256_mullo_epi16(buckets[length], constant_two);
+ t1 = _mm256_add_epi16(buckets[length], constant_sixteen_e2);
 
 
- t2 = _mm256_mullo_epi16(constant_fours, extract(table, length - 1));
+ t2 = _mm256_mullo_epi16(buckets[length - 1], constant_fours);
  //t2 = _mm256_add_epi64(t2,  constant_fours);
 
 
