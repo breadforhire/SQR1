@@ -1,8 +1,8 @@
-#include "immintrin.h"
 #include "avx2intrin.h"
 #include <smmintrin.h>
 #include <stdio.h>
 #include "bucket.h"
+#include <string.h>
 /* This is going to a one month project in which we will implement the 64 bit granger moss primes in tables */
 
 #define length 8
@@ -13,8 +13,8 @@
 [
 x0y0 + x1y1 ...
 
-
-x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1,
+/*ex*
+x0y0  + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1,
 x0y1 + x1y0 + x2y8 + x3y7 + x4y6 + x5y5 + x6y4 + x7y3 + x8y2,
 x0y2 + x1y1 + x2y0 + x3y8 + x4y7 + x5y6 + x6y5 + x7y4 + x8y3,
 x0y3 + x1y2 + x2y1 + x3y0 + x4y8 + x5y7 + x6y6 + x7y5 + x8y4,
@@ -34,10 +34,10 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 
 __attribute__((__aligned__(32)))
-static const int32_t x_n[8] = {2, 4, 8, 16, 32, 64, 128, 256};
+static const int32_t x_n[8] = {2, 4, 8, 16, 32, 64, 128, 256, 512};
 
 __attribute__((__aligned__(32)))
-static const int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256};
+static const int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256, 51};
 
 __attribute__((__aligned__(32)))
 static const int32_t twos [8] = {2, 2, 2, 2, 2, 2, 2, 2};
@@ -61,11 +61,12 @@ void A(struct table *table)
 
 
  /*load resiude*/
- __m256i e_x = _mm256_load_si256((__m256i*) x_n);
+ __m256i e_x;
  __m256i e_y = _mm256_load_si256((__m256i*) y_n);
  __m256i z0;
  __m256i z1;
  __m256i z2;
+ __m256i x;
 
  __m256i constant_two = _mm256_load_si256((__m256i*) twos);
  __m256i constant_sixteen_e2 = _mm256_load_si256((__m256i*) sixteen_e_2 );
@@ -89,24 +90,25 @@ void A(struct table *table)
  for(int i = 0; i < length; i++)
  {
 
-    z0 = _mm256_mullo_epi32(e_x, e_y);
-    memmove(&shift_mask[i], &shift_mask[i + 1], sizeof(shift_mask) - sizeof(*shift_mask));
-    e_y = _mm256_permutevar8x32_epi32(e_y,  _mm256_load_si256((__m256i*) shift_mask));
+    e_x = _mm256_set1_epi32(x_n[i]);
+    z0 = _mm256_mullo_epi32(e_y, e_x);
     z1 = z0;
+    e_y = _mm256_permutevar8x32_epi32(e_y,  _mm256_load_si256((__m256i*) shift_mask));
+    memmove(&shift_mask[i], &shift_mask[i + 1], sizeof(shift_mask) - sizeof(*shift_mask));
+
 
                                     /*do this with every table*/
                                     /*x7y1   x8y0   x3y5*/
   /*fill every bucket with vector   [x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0] */
 
    /*shift once permutations are fixed so this is fine*/
-    z0 = _mm256_permutevar8x32_epi32(z0, _mm256_set_epi32(1, 0, 7, 6, 5, 4, 3, 2));
-    z2 = _mm256_add_epi32(z1, z0);
-    fill(table, z2, i);
-
+   z0 = _mm256_permutevar8x32_epi32(z0, _mm256_set_epi32(1, 0, 7, 6, 5, 4, 3, 2));
+   z2 = _mm256_add_epi32(z1, z0);
+   fill(table, z2, i);
 
  }
 
- //b_p(table);
+// b_p(table);
 
 
  t1 = _mm256_mulhi_epi16(constant_two, extract(table, length % length));
