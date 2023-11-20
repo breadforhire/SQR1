@@ -11,8 +11,7 @@
 #define c_t 2
 
 
-#define ROLL(start, end, buckets, vector, bucketindex, storeindex) \
-    int32_t result[length];   \
+#define ROLL(start, end, buckets, vector, bucketindex, storeindex, result) \
     do { \
         __m256i sum = _mm256_setzero_si256(); \
         for (int i = start; i < end; i++) { \
@@ -20,13 +19,13 @@
             sum = _mm256_add_epi32(sum, _mm256_set1_epi32(result[bucketindex])); \
         } \
         vector[storeindex] = _mm256_extract_epi32(sum, 0); \
+        memset(&result, 0x00, length); \
     } while (0)
 
-#define UNROLL(vector, mod_value, vector_assignment, index_assignment) \
+#define UNROLL(vector, index, vector_assignment, index_assignment, mod) \
     do { \
-        __m256i mod = _mm256_set1_epi32(mod_value); \
-        vector_assignment = _mm256_and_si256(vector, _mm256_sub_epi32(mod, _mm256_set1_epi32(1))); \
-        /*vector_assignment = _mm256_broadcastd_epi32(vector_assignment);*/ \
+        mod = _mm256_and_si256(vector, _mm256_sub_epi32(mod, _mm256_set1_epi32(1))); \
+        vector_assignment[index_assignment] = _mm256_extract_epi32(mod, 0); \
     } while (0)
 
 #define PRINT(vector) \
@@ -94,6 +93,7 @@ void A(struct table *table)
 
 
  /*load resiude*/
+ int32_t result[length];
  __m256i e_x;
  __m256i e_y;
  __m256i z0;
@@ -148,19 +148,22 @@ void A(struct table *table)
  //start, end, buckets, vector, bucket_index, storeindex
 
 
- ROLL(0, 4, buckets, t1, length - 1, 0);
- t1 = _mm256_add_epi16(t1, constant_sixteen_e2);
- PRINT(t1);
+ ROLL(0, 4, buckets, t1, length - 1, 0, result);
+ t1 = _mm256_mullo_epi32(t1, constant_two);
+ t1 = _mm256_add_epi32(t1, constant_sixteen_e2);
+
 
  /* we will be constantly rolling and unrolling*/
- UNROLL(t1, c_t, t0, 0);
+/*vector, index, vector_assignment, index_assignment, mod*/
+ UNROLL(t1, 0, t0, 0, constant_two);
  _mm256_extracti128_si256(t0, 0);
+ PRINT(t0);
 
+ ROLL(1, 4, buckets, t2, 0, 0, result);
+ t2 = _mm256_mullo_epi16(t2, constant_fours);
+ t2 = _mm256_add_epi16(t2,  constant_sixteen_e2);
 
- t2 = _mm256_hadd_epi32(buckets[length - 2], buckets[length - 2]);
- t2 = _mm256_hadd_epi32(t2, t2);
- t2 = _mm256_mullo_epi16(buckets[length - 1], constant_fours);
- //t2 = _mm256_add_epi64(t2,  constant_fours);
+ //PRINT(t1);
 
 
 
