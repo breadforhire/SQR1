@@ -11,13 +11,15 @@
 #define c_t 2
 
 
-#define ROLL(start, end, C, index) \
+#define ROLL(start, end, buckets, vector, bucketindex, storeindex) \
+    int32_t result[length];   \
     do { \
         __m256i sum = _mm256_setzero_si256(); \
-        for (int i = start; i < end; ++i) { \
-            sum = _mm256_add_epi32(sum, _mm256_set1_epi32(C[i])); \
+        for (int i = start; i < end; i++) { \
+            _mm256_storeu_si256((__m256i*)result, buckets[i]); \
+            sum = _mm256_add_epi32(sum, _mm256_set1_epi32(result[bucketindex])); \
         } \
-        C[index] = _mm256_extract_epi32(sum, 0); \
+        vector[storeindex] = _mm256_extract_epi32(sum, 0); \
     } while (0)
 
 #define UNROLL(vector, mod_value, vector_assignment, index_assignment) \
@@ -25,6 +27,13 @@
         __m256i mod = _mm256_set1_epi32(mod_value); \
         vector_assignment = _mm256_and_si256(vector, _mm256_sub_epi32(mod, _mm256_set1_epi32(1))); \
         /*vector_assignment = _mm256_broadcastd_epi32(vector_assignment);*/ \
+    } while (0)
+
+#define PRINT(vector) \
+    do { \
+        for (int i = 0; i < length; i++) { \
+            printf("%d\n", vector[i]); \
+        } \
     } while (0)
 
 /*
@@ -126,9 +135,9 @@ void A(struct table *table)
     shiftArray(y_n, length, i);
     _mm256_storeu_si256((__m256i*)temp, z0);
     shiftArray(temp, length, i);
+     z1 = _mm256_loadu_si256((__m256i*)temp);
 
-    z1 = _mm256_loadu_si256((__m256i*)temp);
-    buckets[i] = z1;
+    _mm256_storeu_si256(&buckets[i], z1);
 
 
 
@@ -136,30 +145,20 @@ void A(struct table *table)
 
 
  }
-  __m256i mask = _mm256_set_epi32(0, 0, 0, 0, -1, -1, -1, -1);
+ //start, end, buckets, vector, bucket_index, storeindex
 
 
- t1 = _mm256_permutevar8x32_epi32(buckets[length - 1], mask);
- t1 = _mm256_hadd_epi32(t1, t1);
- ROLL(0, 3, t1, 0);
+ ROLL(0, 4, buckets, t1, length - 1, 0);
  t1 = _mm256_add_epi16(t1, constant_sixteen_e2);
+ PRINT(t1);
 
  /* we will be constantly rolling and unrolling*/
- //printf("%d \n", t1[0]);
  UNROLL(t1, c_t, t0, 0);
  _mm256_extracti128_si256(t0, 0);
 
- //printf("%d, %d, %d  \n", t1[0], t0[0], t0[0]);
 
  t2 = _mm256_hadd_epi32(buckets[length - 2], buckets[length - 2]);
  t2 = _mm256_hadd_epi32(t2, t2);
-
-
-
-
-
-
-
  t2 = _mm256_mullo_epi16(buckets[length - 1], constant_fours);
  //t2 = _mm256_add_epi64(t2,  constant_fours);
 
@@ -169,8 +168,9 @@ void A(struct table *table)
 int main()
 {
 
- struct table* t = init(length);
- A(t);
+ __m256i buckets[length];
+
+ A(buckets);
  return 0;
 
 }
