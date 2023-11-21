@@ -35,6 +35,10 @@
         } \
     } while (0)
 
+#define STORE(vector, index , vector_assignment, index_assignment) \
+ vector_assignment[index_assignment] = _mm256_extract_epi32(vector, index); \
+ vector = _mm256_set1_epi32(0) \
+
 /*
 [
 x0y0 + x1y1 ...
@@ -145,25 +149,26 @@ void A(struct table *table)
 
 
  }
- //start, end, buckets, vector, bucket_index, storeindex
-
-
+ //start, end, buckets, vector, bucket_index, storeindex arr
  ROLL(0, 4, buckets, t1, length - 1, 0, result);
  t1 = _mm256_mullo_epi32(t1, constant_two);
  t1 = _mm256_add_epi32(t1, constant_sixteen_e2);
-
-
- /* we will be constantly rolling and unrolling*/
 /*vector, index, vector_assignment, index_assignment, mod*/
  UNROLL(t1, 0, t0, 0, constant_two);
- _mm256_extracti128_si256(t0, 0);
- PRINT(t0);
 
- ROLL(1, 4, buckets, t2, 0, 0, result);
- t2 = _mm256_mullo_epi16(t2, constant_fours);
- t2 = _mm256_add_epi16(t2,  constant_sixteen_e2);
 
- //PRINT(t1);
+ /*store the mods in t0 and store the vector operations in t1*/
+
+ ROLL(1, 5, buckets, t2, 0, 0, result);
+ t2 = _mm256_mullo_epi32(t2, constant_fours);
+ t2 = _mm256_add_epi32(t2,  constant_sixteen_e2);
+ t2 = _mm256_add_epi32(t2, _mm256_mullo_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t1, 0) >> 58), constant_two)) ;
+ /*vector, index , vector_assignment, index_assignment*/
+ STORE(t2, 0, t1 , 1);
+ /*vector, index, vector_assignment, index_assignment, mod*/
+ UNROLL(t2, 0, t0, 1, constant_two);
+ PRINT(t1);
+
 
 
 
