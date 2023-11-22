@@ -6,7 +6,7 @@
 #include <string.h>
 /* This is going to a one month project in which we will implement the 64 bit granger moss primes in tables */
 
-#define length 8
+#define length 9
 /*leaving this empty */
 #define c_t 2
 
@@ -69,10 +69,10 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 
 __attribute__((__aligned__(32)))
-static const int32_t x_n[8] = {2, 4, 8, 16, 32, 64, 128, 256};
+static const int32_t x_n[9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
 
 __attribute__((__aligned__(32)))
-static int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256};
+static int32_t y_n [9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
 
 __attribute__((__aligned__(32)))
 static const int32_t twos [8] = {2, 2, 2, 2, 2, 2, 2, 2};
@@ -141,8 +141,8 @@ void A(struct table *table)
  /* bucket the entire x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1  as*(x0y8 x1y7 x2y6 x3y5) +  (x4y4  x5y3  x6y2 x7y1  x8y0)  */
  /*shift then add to the bucket*/
 
-
- for(int i = 0; i < length; i++)
+ buckets[0] = _mm256_load_si256((__m256i*) x_n);
+ for(int i = 1; i < length; i++)
  {
 
 
@@ -169,7 +169,7 @@ void A(struct table *table)
  }
  /*t1 = 2(x0x8 + x1x7 + x2x6 + x3x5) + x4 ^2*/
  /*start, end, buckets, vector, bucket_index, storeindex arr*/
- ROLL(0, 4, buckets, t1, length - 1, 0, result);
+ ROLL(0, 4, buckets, t1, length - 2, 0, result);
  t1 = _mm256_mullo_epi32(t1, constant_two);
  t1 = _mm256_add_epi32(t1, constant_sixteen_e2);
  /*vector, index , vector_assignment, index_assignment*/
@@ -230,10 +230,39 @@ void A(struct table *table)
 
  /*all of our mods are going to be zero but i will still leave this here*/
  UNROLL(t1_storage, 2, z0, 3, constant_two, filler);
- PRINT(z0);
 
  /* t2 = 4(x5x8 + x6x7) + 2(x0x4 + x1x3) + x2^2 + (t1 >> 58)*/
+ ROLL(5, 7, buckets, t2, 4, 0, result);
+ t2 = _mm256_mullo_epi32(t2, constant_two);
+ ROLL(0, 2, buckets, t2, 4, 1, result);
+ t2 = _mm256_mullo_epi32(t2, constant_two);
+ ROLL(0, 1, buckets, t2, 4, 2, result);
+
+ QUICK_SUM_THREE(t2);
+ t2 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t1_storage, 2) >> 58), t2 );
+ STORE(t2, 0, t2_storage, 3);
+
+ UNROLL(t2_storage, 3, z0, 4, constant_two, filler);
+
+ /*t1 = 4 (x6x8) + 2(x0x5 + x1x4 + x2x3 + x7 ^ 2) + (t2 >> 58)*/
+ ROLL(6, 7, buckets, t1, 5, 0, result);
+ t1 = _mm256_mullo_epi32(t1, constant_two);
+ ROLL(0, 3, buckets, t1, 5, 1, result);
+ t1 = _mm256_mullo_epi32(t1, constant_two);
+ ROLL(0, 1, buckets, t1, 3, 2, result);
+ QUICK_SUM_THREE(t1);
+
+ t1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 3)  >> 58), t1);
+ STORE(t1, 0, t1_storage, 3);
+ PRINT(t1_storage);
+
+ UNROLL(t1_storage, 3, z0, 5, constant_two, filler);
+
+ /*we are missing an extra row but its fine just minus one of everything*/
+ /*t2 = 4 (x7x8) + 2(x0x6 + x1x5 + x2x4) + x3  ^ 2 + (t1 >> 58)*/
+ ROLL(7, 8, buckets, t2, 7, 0, result);
  
+
 
 
 }
