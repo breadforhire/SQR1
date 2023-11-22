@@ -180,12 +180,17 @@ void A(struct table *table)
  STORE(t1, 2, t2_storage, 0);
  UNROLL(t2_storage, 0, z0, 0, constant_two, filler);
 
- PRINT(z0);
-
+/*4(x2x8 + x3x7 + x4x6) + 2(x0x1 + x5 ^ 2) + (t2 >> 58)*/
  ROLL(3, 6, buckets, t1, 1, 0, result);
  t1 = _mm256_mullo_epi32(t1, constant_fours);
  ROLL(0, 1, buckets, t1, 1, 1, result);
- t1 = _mm256_add_epi32(t1, _mm256_mullo_epi32(_mm256_set1_epi32(&t1[1]), constant_two));
+ /*this is a total mess but i will fix it tommorrow*/
+ &t1[1] = _mm256_extract_epi32(t1, 1) * 2;
+ t1 = _mm256_hadd_epi32(t1, t1);
+ t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 0)) >> 58);
+ STORE(t1, 0, t2_storage, 1);
+ PRINT(t2_storage);
+
 
 
 
