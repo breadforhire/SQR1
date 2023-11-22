@@ -88,7 +88,7 @@ __attribute__((__aligned__(32)))
 static int32_t shift_mask [8] = {0, 1, 2, 3, 4, 5, 6, 7 };
 
 
-int32_t temp[length - 1];
+int32_t temp[length];
 
 void shiftArray(int arr[], int size, int shiftBy)
 {
@@ -108,7 +108,7 @@ void A(struct table *table)
 
 
  /*load resiude*/
- int32_t result[length - 1];
+ int32_t result[length ];
  __m256i e_x;
  __m256i e_y;
  __m256i z0;
