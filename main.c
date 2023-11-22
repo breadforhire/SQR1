@@ -269,7 +269,7 @@ void A(struct table *table)
  ROLL(0, 3, buckets, t1, 7, 0, result);
  t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(262144));
  t1 = _mm256_mullo_epi32(t1, constant_two);
- t1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t2, 4) >> 58), t1);
+ t1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 4) >> 58), t1);
 
  STORE(t1, 0, t1_storage, 4);
  UNROLL(t1_storage, 4, z0, 7, constant_two, filler);
