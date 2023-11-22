@@ -4,9 +4,8 @@
 #include <stdio.h>
 #include "bucket.h"
 #include <string.h>
-/* This is going to a one month project in which we will implement the 64 bit granger moss primes in tables */
 
-#define length 9
+#define length 8
 /*leaving this empty */
 #define c_t 2
 
@@ -30,8 +29,8 @@
 
 #define PRINT(vector) \
     do { \
-        for (int i = 0; i < length; i++) { \
-            printf("%d\n", vector[i]); \
+        for (int i = 0; i < 8; i++) { \
+            printf("\n%d\n", vector[i]); \
         } \
     } while (0)
 
@@ -69,10 +68,10 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 
 __attribute__((__aligned__(32)))
-static const int32_t x_n[9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+static const int32_t x_n[8] = { 2, 4, 8, 16, 32, 64, 128, 256};
 
 __attribute__((__aligned__(32)))
-static int32_t y_n [9] = {1, 2, 4, 8, 16, 32, 64, 128, 256};
+static int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256};
 
 __attribute__((__aligned__(32)))
 static const int32_t twos [8] = {2, 2, 2, 2, 2, 2, 2, 2};
@@ -88,7 +87,7 @@ __attribute__((__aligned__(32)))
 static int32_t shift_mask [8] = {0, 1, 2, 3, 4, 5, 6, 7 };
 
 
-int32_t temp[length];
+int32_t temp[length - 1];
 
 void shiftArray(int arr[], int size, int shiftBy)
 {
@@ -108,7 +107,7 @@ void A(struct table *table)
 
 
  /*load resiude*/
- int32_t result[length];
+ int32_t result[length - 1];
  __m256i e_x;
  __m256i e_y;
  __m256i z0;
@@ -141,8 +140,7 @@ void A(struct table *table)
  /* bucket the entire x0y0 + x1y8 + x2y7 + x3y6 + x4y5 + x5y4 + x6y3 + x7y2 + x8y1  as*(x0y8 x1y7 x2y6 x3y5) +  (x4y4  x5y3  x6y2 x7y1  x8y0)  */
  /*shift then add to the bucket*/
 
- buckets[0] = _mm256_load_si256((__m256i*) x_n);
- for(int i = 1; i < length; i++)
+ for(int i = 0; i < length; i++)
  {
 
 
@@ -157,14 +155,9 @@ void A(struct table *table)
     shiftArray(y_n, length, i);
     _mm256_storeu_si256((__m256i*)temp, z0);
     shiftArray(temp, length, i);
-     z1 = _mm256_loadu_si256((__m256i*)temp);
+    z1 = _mm256_loadu_si256((__m256i*)temp);
 
     _mm256_storeu_si256(&buckets[i], z1);
-
-
-
-
-
 
  }
  /*t1 = 2(x0x8 + x1x7 + x2x6 + x3x5) + x4 ^2*/
@@ -254,14 +247,37 @@ void A(struct table *table)
 
  t1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 3)  >> 58), t1);
  STORE(t1, 0, t1_storage, 3);
- PRINT(t1_storage);
 
  UNROLL(t1_storage, 3, z0, 5, constant_two, filler);
 
  /*we are missing an extra row but its fine just minus one of everything*/
  /*t2 = 4 (x7x8) + 2(x0x6 + x1x5 + x2x4) + x3  ^ 2 + (t1 >> 58)*/
  ROLL(7, 8, buckets, t2, 7, 0, result);
- 
+ t2 = _mm256_mullo_epi32(t2, constant_two);
+ ROLL(0, 3, buckets, t2, 6, 1, result);
+ t2 = _mm256_mullo_epi32(t2, constant_two);
+ ROLL(0, 1, buckets, t2, 6, 2, result);
+ QUICK_SUM_THREE(t2);
+ t2 = _mm256_add_epi32(_mm256_set1_epi32( _mm256_extract_epi32(t1_storage, 3) >> 58), t2);
+ STORE(t2, 0, t2_storage, 4);
+
+ UNROLL(t2_storage, 4, z0, 6, constant_two, filler);
+
+ /*I am just going to add this imaginary x^8 */
+ /*t1 = 2(x0x7 + x1x6 + x2x5 + x3x4 + x8 ^ 2) + (t2 >> 58)*/
+ ROLL(0, 3, buckets, t1, 7, 0, result);
+ t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(262144));
+ t1 = _mm256_mullo_epi32(t1, constant_two);
+ t1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t2, 4) >> 58), t1);
+
+ STORE(t1, 0, t1_storage, 4);
+ UNROLL(t1_storage, 4, z0, 7, constant_two, filler);
+
+ t2_storage[5] = ((t0_storage[0] + t1_storage[4]) >> 58);
+ UNROLL(t2_storage, 4, z0_storage, 0, constant_two, filler );
+ z0[0] = z0[0] + (2 * (t2_storage[5] >> 58));
+
+
 
 
 
