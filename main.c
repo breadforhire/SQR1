@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include "bucket.h"
 #include <string.h>
+/* This is going to a one month project in which we will implement the 64 bit granger moss primes in tables */
 
 #define length 8
 /*leaving this empty */
@@ -68,10 +69,10 @@ x0y8 + x1y7 + x2y6 + x3y5 + x4y4 + x5y3 + x6y2 + x7y1 + x8y0].  */
 
 
 __attribute__((__aligned__(32)))
-static const int32_t x_n[8] = { 2, 4, 8, 16, 32, 64, 128, 256};
+static const int32_t x_n[8] = { 0, 4, 8, 16, 32, 64, 128, 256};
 
 __attribute__((__aligned__(32)))
-static int32_t y_n [8] = {2, 4, 8, 16, 32, 64, 128, 256};
+static int32_t y_n [8] = {0, 4, 8, 16, 32, 64, 128, 256};
 
 __attribute__((__aligned__(32)))
 static const int32_t twos [8] = {2, 2, 2, 2, 2, 2, 2, 2};
@@ -277,7 +278,8 @@ void A(struct table *table)
  UNROLL(t2_storage, 4, z0_storage, 0, constant_two, filler );
  z0[0] = z0[0] + (2 * (t2_storage[5] >> 58));
 
-
+ PRINT(z0_storage);
+ PRINT(z0);
 
 
 
