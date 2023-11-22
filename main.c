@@ -39,6 +39,17 @@
  vector_assignment[index_assignment] = _mm256_extract_epi32(vector, index); \
  vector = _mm256_set1_epi32(0) \
 
+#define QUICK_SUM_THREE(vector) ({ \
+    __m256i v = (vector); \
+    __m128i lower = _mm256_extracti128_si256(v, 0); \
+    __m128i upper = _mm256_extracti128_si256(v, 1); \
+    __m128i sum128 = _mm_add_epi32(lower, upper); \
+    __m128i permuted = _mm_shuffle_epi32(sum128, _MM_SHUFFLE(2, 3, 0, 1)); \
+    __m128i final_sum = _mm_add_epi32(sum128, permuted); \
+    _mm_cvtsi128_si32(final_sum); \
+})
+
+
 /*
 [
 x0y0 + x1y1 ...
@@ -114,6 +125,7 @@ void A(struct table *table)
  /*vectors that will be applied but not used for storage*/
  __m256i t0;
  __m256i t1;
+ __m256i t2;
 
 
  __m256i t0_storage;
@@ -184,18 +196,44 @@ void A(struct table *table)
  ROLL(3, 6, buckets, t1, 1, 0, result);
  t1 = _mm256_mullo_epi32(t1, constant_fours);
  ROLL(0, 1, buckets, t1, 1, 1, result);
- /*this is a total mess but i will fix it tommorrow*/
- &t1[1] = _mm256_extract_epi32(t1, 1) * 2;
- t1 = _mm256_hadd_epi32(t1, t1);
+ t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(_mm256_extract_epi32(t1, 1) * 2) + (x_n[5] * x_n[5]));
  t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 0)) >> 58);
- STORE(t1, 0, t2_storage, 1);
- PRINT(t2_storage);
+ STORE(t1, 0, t1_storage, 1);
+
+ UNROLL(t1_storage, 1, z0, 1, constant_two, filler);
+
+ /*t2 = 4(x3x8 + x4x7 + x5x6) + 2(x0x2) + x1 ^ 2 + (t1 >> 58)*/
+
+ ROLL(3, 6, buckets, t2, 2, 0 , result );
+ t2 = _mm256_mullo_epi32(t2, constant_fours);
+ ROLL(0, 1, buckets, t2, 2, 1, result);
+ t2 = _mm256_add_epi32(t2, _mm256_set1_epi32(2 * (t2[1])));
+ t2 = _mm256_add_epi32(t2, _mm256_set1_epi32(_mm256_extract_epi32(t1_storage, 1)) >> 58);
+
+ STORE(t2, 0, t2_storage, 1);
+ /*z2 = t2 mod t*/
+ UNROLL(t2_storage, 1, z0, 2, constant_two, filler);
+
+ /*t1 = 4(x4x8 + x5x7) + 2(x0x3 + x1x2 + x6 ^ 2) + (t2 >> 58)*/
+ ROLL(4, 6, buckets, t1, 3, 0, result);
+ t1 = _mm256_mullo_epi32(t1, constant_two);
+ ROLL(0, 2, buckets, t1, 3, 1, result);
+ t1 = _mm256_mullo_epi32(t1, constant_two);
+
+ t0 = _mm256_set1_epi32(x_n[6] * x_n[6]);
+ t0 = _mm256_blend_epi32(filler, t0, 0xFE);
 
 
+ t1 = _mm256_add_epi32(t1, t0);
+ t1 = _mm256_set1_epi32 (QUICK_SUM_THREE(t1));
+ STORE(t1, 0, t1_storage, 2);
 
+ /*all of our mods are going to be zero but i will still leave this here*/
+ UNROLL(t1_storage, 2, z0, 3, constant_two, filler);
+ PRINT(z0);
 
-
-
+ /* t2 = 4(x5x8 + x6x7) + 2(x0x4 + x1x3) + x2^2 + (t1 >> 58)*/
+ 
 
 
 }
