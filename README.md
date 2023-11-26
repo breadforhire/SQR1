@@ -1,5 +1,5 @@
 # avx-primes
-Faster ECC over F2^521 - 1
+Faster ECC over F2^521 - 1 (Testing and Benchmarking stage)
 
 
 
@@ -10,7 +10,12 @@ Faster ECC over F2^521 - 1
 
 
 
-The table is 7x7 instead of 8x8 so just add an extra row and column 
+The table is 7x7 
+
+z ≡ x2(mod t9 − 2)
+
+
+
 
 
 
