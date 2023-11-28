@@ -278,7 +278,6 @@ void A(struct table *table)
  UNROLL(t2_storage, 4, z0_storage, 0, constant_two, filler );
  z0[0] = z0[0] + (2 * (t2_storage[5] >> 58));
 
- PRINT(z0_storage);
  PRINT(z0);
 
 
