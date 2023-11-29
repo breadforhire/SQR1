@@ -23,31 +23,20 @@
 
 #define UNROLL(vector, index, vector_assignment, index_assignment, mod, filler) \
     do { \
-        __m256i mask =  mod; \
-        __m256i temp =  _mm256_and_si256(vector, _mm256_sub_epi32(mask, _mm256_set1_epi32(1)));\
-        vector_assignment[index_assignment] = _mm256_extract_epi32(temp, 0); \
+        filler =  _mm256_and_si256(_mm256_set1_epi32(_mm256_extract_epi32(vector, index)), mod);\
+        vector_assignment[index_assignment] = _mm256_extract_epi32(filler, 0); \
     } while (0)
 
 #define PRINT(vector) \
     do { \
         for (int i = 0; i < 8; i++) { \
-            printf("\n%d\n", vector[i]); \
+            printf("\n%d --> %d \n", vector[i], i); \
         } \
     } while (0)
 
-#define STORE(vector, index , vector_assignment, index_assignment) \
- vector_assignment[index_assignment] = _mm256_extract_epi32(vector, index); \
- vector = _mm256_set1_epi32(0) \
 
-__m256i store;
 
-void QUICK_SUM_THREE(__m256i vector) {
 
-    store = vector;
-    store = _mm256_hadd_epi32(vector, store);
-
-    return 0;
-}
 
 /*
 [
@@ -110,8 +99,8 @@ void A()
  int32_t result[length ];
  __m256i e_x;
  __m256i e_y;
- __m256i z0;
- __m256i z1;
+ __m256i temp0;
+ __m256i temp1;
  __m256i buckets[length];
 
 
@@ -127,12 +116,21 @@ void A()
  __m256i t2;
 
 
- __m256i t0_storage;
- __m256i t1_storage;
- __m256i t2_storage;
- __m256i z0_storage;
 
- int filler;
+ __m256i t0_storage;
+
+
+ __m256i z0;
+ __m256i z1;
+ __m256i z2;
+ __m256i z3;
+ __m256i z4;
+ __m256i z5;
+ __m256i z6;
+ __m256i z7;
+ __m256i z8;
+
+ __m256i filler;
 
 
 
@@ -152,13 +150,13 @@ void A()
    /*shift once permutations are fixed so this is fine*/
 
     e_x = _mm256_set1_epi32(x_n[i]);
-    z0 = _mm256_mullo_epi32(_mm256_load_si256((__m256i*) y_n) , _mm256_set1_epi32(x_n[i]));
+    temp0 = _mm256_mullo_epi32(_mm256_load_si256((__m256i*) y_n) , _mm256_set1_epi32(x_n[i]));
     shiftArray(y_n, length, i);
-    _mm256_storeu_si256((__m256i*)temp, z0);
+    _mm256_storeu_si256((__m256i*)temp, temp0);
     shiftArray(temp, length, i);
-    z1 = _mm256_loadu_si256((__m256i*)temp);
+    temp1 = _mm256_loadu_si256((__m256i*)temp);
 
-    _mm256_storeu_si256(&buckets[i], z1);
+    _mm256_storeu_si256(&buckets[i], temp1);
 
  }
 
@@ -166,132 +164,170 @@ void A()
  ROLL(0, 4, buckets, t1, length - 2, 0, result);
  t1 = _mm256_mullo_epi32(t1, constant_two);
  t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(x_n[4] * x_n[4]));
- /*vector, index , vector_assignment, index_assignment*/
- STORE(t1, 0, t1_storage, 0);
  /*vector, index, vector_assignment, index_assignment, mod, filler*/
- UNROLL(t1_storage, 0, t0_storage, 0, constant_two, filler);
 
+  _mm256_storeu_si256((__m256i*)temp, t1);
+ t0_storage = _mm256_set1_epi32(temp[0] % c_t);
 
-
-
-
-
+ /*this works 9 % 2 --> 1*/
 
  /*t2 = 4(x1x8 + x2x7 + x3x6 + x4x5) + x0^2 + 2(t1 >> 58)*/
- ROLL(1, 5, buckets, t1, 0, 1, result);
- t1 = _mm256_mullo_epi32(t1, constant_fours);
- t1 = _mm256_add_epi32(t1,  _mm256_set1_epi32(x_n[0] * x_n[0]));
- t1 = _mm256_add_epi32(t1, _mm256_mullo_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t1_storage, 0) >> 58), constant_two)) ;
- STORE(t1, 2, t2_storage, 0);
- UNROLL(t2_storage, 0, z0, 0, constant_two, filler);
+ ROLL(1, 5, buckets, t2, 0, 1, result);
+ t2 = _mm256_mullo_epi32(t2, constant_fours);
+ t2 = _mm256_add_epi32(t2,  _mm256_set1_epi32(x_n[0] * x_n[0]));
+ t2 = _mm256_add_epi32(t2, _mm256_mullo_epi32(_mm256_set1_epi32(temp[0] >> 58), constant_two)) ;
+
+  _mm256_storeu_si256((__m256i*)temp, t2);
+ z0 = _mm256_set1_epi32(temp[2] % c_t);
 
 
+/*so far the first four elements of each of these are(z0, t0_storage) and the addition works!*/
 
-/*4(x2x8 + x3x7 + x4x6) + 2(x0x1 + x5 ^ 2) + (t2 >> 58)*/
+/*t1 = 4(x2x8 + x3x7 + x4x6) + 2(x0x1 + x5 ^ 2) + (t2 >> 58)*/
  ROLL(3, 6, buckets, t1, 1, 0, result);
  t1 = _mm256_mullo_epi32(t1, constant_fours);
- ROLL(0, 1, buckets, t1, 1, 1, result);
- t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(_mm256_extract_epi32(t1, 1) * 2) + (x_n[5]  * x_n[5]) );
- t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 0)) >> 58);
- STORE(t1, 0, t1_storage, 1);
+ ROLL(0, 1, buckets, t0, 1, 0, result);
+ t0 = _mm256_add_epi32(t0, _mm256_set1_epi32(x_n[5] * x_n[5]));
+ t0 = _mm256_mullo_epi32(t0, constant_two);
 
+ t1 = _mm256_add_epi32(t1, t0);
+ t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(temp[0]  >> 58));
 
- UNROLL(t1_storage, 1, z0, 1, constant_two, filler);
+ _mm256_storeu_si256((__m256i*)temp, t1);
+ z1 = _mm256_set1_epi32(temp[0] % c_t);
+
+ /*this works 16 % 2 --> 0*/
 
 
  /*t2 = 4(x3x8 + x4x7 + x5x6) + 2(x0x2) + x1 ^ 2 + (t1 >> 58)*/
  ROLL(3, 6, buckets, t2, 2, 0 , result );
- t2 = _mm256_mullo_epi32(t2, constant_two);
- ROLL(0, 1, buckets, t2, 2, 1, result);
- t2 = _mm256_mullo_epi32(t2, constant_two);
+ t2 = _mm256_mullo_epi32(t2, constant_fours);
+ ROLL(0, 1, buckets, t0, 2, 0, result);
+ t0 = _mm256_mullo_epi32(t0, constant_two);
+ t2 = _mm256_add_epi32(t0, t2);
  t2 = _mm256_add_epi32(t2, _mm256_set1_epi32((x_n[1] * x_n[1])));
- t2 = _mm256_add_epi32(t2, _mm256_set1_epi32(_mm256_extract_epi32(t1_storage, 1)) >> 58);
+ t2 = _mm256_add_epi32(t2, _mm256_set1_epi32(temp[0]  >> 58));
 
- STORE(t2, 0, t2_storage, 1);
+ _mm256_storeu_si256((__m256i*)temp, t2);
+ z2 = _mm256_set1_epi32(temp[0] % c_t);
 
- /*z2 = t2 mod t*/
- UNROLL(t2_storage, 1, z0, 2, constant_two, filler);
-
+ /*this works 15 % 2 --> 1*/
 
  /*t1 = 4(x4x8 + x5x7) + 2(x0x3 + x1x2 + x6 ^ 2) + (t2 >> 58)*/
  ROLL(4, 6, buckets, t1, 3, 0, result);
- t1 = _mm256_mullo_epi32(t1, constant_two);
- ROLL(0, 2, buckets, t1, 3, 1, result);
- t1 = _mm256_mullo_epi32(t1, constant_two);
- t0 = _mm256_set1_epi32(x_n[6] * x_n[6]);
+ t1 = _mm256_mullo_epi32(t1, constant_fours);
 
- STORE(t0, 0, t1, 2);
- //quick sum three
- t1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 1) >> 58), t1);
- STORE(t1, 0, t1_storage, 2);
- UNROLL(t1_storage, 2, z0, 3, constant_two, filler);
+ ROLL(0, 2, buckets, t2, 3, 0, result);
+ t0 = _mm256_set1_epi32(x_n[6] * x_n[6]);
+ t2 = _mm256_add_epi32(t2, t0);
+ t2 = _mm256_mullo_epi32(t2, constant_two);
+
+ t1 = _mm256_add_epi32(t2, t1);
+
+ t1 = _mm256_add_epi32(_mm256_set1_epi32(temp[0]  >> 58), t1);
+
+  _mm256_storeu_si256((__m256i*)temp, t1);
+  z3 = _mm256_set1_epi32(temp[0] % c_t);
+
+ /*this works 14 % 2 --> 0*/
 
 
  /* t2 = 4(x5x8 + x6x7) + 2(x0x4 + x1x3) + x2^2 + (t1 >> 58)*/
  ROLL(5, 7, buckets, t2, 4, 0, result);
- t2 = _mm256_mullo_epi32(t2, constant_two);
- ROLL(0, 2, buckets, t2, 4, 1, result);
- t2 = _mm256_mullo_epi32(t2, constant_two);
- ROLL(2, 3, buckets, t2, 4, 2, result);
- //QUICK_SUM_THREE(t2);
- t2 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t1_storage, 2) >> 58), t2 );
- STORE(t2, 0, t2_storage, 3);
- UNROLL(t2_storage, 3, z0, 4, constant_two, filler);
+ t2 = _mm256_mullo_epi32(t2, constant_fours);
+ ROLL(0, 2, buckets, t1, 4, 0, result);
+ t1 = _mm256_mullo_epi32(t1, constant_two);
+
+ t2 = _mm256_add_epi32(t1, t2);
+ t2 = _mm256_add_epi32(t2, _mm256_set1_epi32(x_n[2] * x_n[2]));
+ t2 = _mm256_add_epi32(_mm256_set1_epi32(temp[0] >> 58), t2 );
+
+  _mm256_storeu_si256((__m256i*)temp, t2);
+  z4 = _mm256_set1_epi32(temp[0] % c_t);
+
+  /*this works 13 % 2 --> 1*/
 
  /*t1 = 4 (x6x8) + 2(x0x5 + x1x4 + x2x3 + x7 ^ 2) + (t2 >> 58)*/
  ROLL(6, 7, buckets, t1, 5, 0, result);
- t1 = _mm256_mullo_epi32(t1, constant_two);
- ROLL(0, 3, buckets, t1, 5, 1, result);
- t1 = _mm256_mullo_epi32(t1, constant_two);
- ROLL(7, 8, buckets, t1, 5 , 2, result);
- //QUICK_SUM_THREE(t1);
- t1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 3)  >> 58), t1);
- STORE(t1, 0, t1_storage, 3);
+ t1 = _mm256_mullo_epi32(t1, constant_fours);
 
- UNROLL(t1_storage, 3, z0, 5, constant_two, filler);
+
+ ROLL(0, 3, buckets, t2, 5 , 0, result);
+
+ t2 = _mm256_add_epi32(t2, _mm256_set1_epi32(x_n[7] * x_n[7]));
+ t2 = _mm256_mullo_epi32(t2, constant_two);
+
+
+ t1 = _mm256_add_epi32(t1, t2);
+ t1 = _mm256_add_epi32(_mm256_set1_epi32(temp[0]  >> 58), t1);
+
+ _mm256_storeu_si256((__m256i*)temp, t1);
+ z5 = _mm256_set1_epi32(temp[0] % c_t);
+
+
+ /*this works 12 % 4 --> 0*/
 
  /*t2 = 4 (x7x8) + 2(x0x6 + x1x5 + x2x4) + x3  ^ 2 + (t1 >> 58)*/
- ROLL(6, 7, buckets, t2, 7, 0, result);
- t2 = _mm256_mullo_epi32(t2, constant_four);
- ROLL(0, 3, buckets, store, 6, 1, result);
- store = _mm256_mullo_epi32(store, constant_two);
- ROLL(0, 1, buckets, store, 6, 0, result);
+ ROLL(6, 7, buckets, t0, 7, 0, result);
+ t0 = _mm256_mullo_epi32(t0, constant_fours);
+ ROLL(0, 3, buckets, t1, 6, 0, result);
+ t1 = _mm256_mullo_epi32(t1, constant_two);
+ ROLL(0, 1, buckets, t2, 6, 0, result);
 
- store = _mm256_hadd_epi32(store, store);
- t2 = _mm256_add_epi32(store, t2);
- /*quick sum three*/
- PRINT(t2);
- t2 = _mm256_add_epi32(_mm256_set1_epi32( _mm256_extract_epi32(t1_storage, 3) >> 58), t2);
- STORE(t2, 0, t2_storage, 4);
- UNROLL(t2_storage, 4, z0, 6, constant_two, filler);
+ t1 = _mm256_add_epi32(t0, t1);
+ t2 = _mm256_add_epi32(t1, t2);
+
+ t2 = _mm256_add_epi32(_mm256_set1_epi32( temp[0] >> 58), t2);
+
+  _mm256_storeu_si256((__m256i*)temp, t2);
+ z6 = _mm256_set1_epi32(temp[0] % c_t);
+
+
+ /*this works 11 % 2 --> 1*/
 
  /*t1 = 2(x0x7 + x1x6 + x2x5 + x3x4 + x8 ^ 2) + (t2 >> 58)*/
- ROLL(0, 3, buckets, t1, 7, 0, result);
- t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(x_n[8] * x_n[8]));
+ ROLL(0, 4, buckets, t1, 7, 0, result);
+ t1 = _mm256_add_epi32(t1, _mm256_set1_epi32(x_n[7] * x_n[7]));
  t1 = _mm256_mullo_epi32(t1, constant_two);
- t1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(t2_storage, 4) >> 58), t1);
+ t1 = _mm256_add_epi32(_mm256_set1_epi32(temp[0] >> 58), t1);
 
- STORE(t1, 0, t1_storage, 4);
- UNROLL(t1_storage, 4, z0, 7, constant_two, filler);
+  _mm256_storeu_si256((__m256i*)temp, t1);
+  z7 = _mm256_set1_epi32(temp[0] % c_t);
 
+ /*this works 10 % 2 --> 0*/
 
- __m256i extracted_t0 = _mm256_set1_epi32(_mm256_extract_epi32(t1_storage, 0));
- __m256i extracted_t1 = _mm256_set1_epi32(_mm256_extract_epi32(t1_storage, 4) >> 58);
+ __m256i extracted_t0 = _mm256_set1_epi32(_mm256_extract_epi32(t0_storage, 0));
+ __m256i extracted_t1 = _mm256_set1_epi32(_mm256_extract_epi32(t1, 0) >> 58);
 
  t2 = _mm256_add_epi32(extracted_t0, extracted_t1);
- STORE(t2, 0, t2_storage, 5);
+ _mm256_storeu_si256((__m256i*)temp, t2);
+ z8 = _mm256_set1_epi32(temp[0] % c_t);
 
 
- UNROLL(t2_storage, 5, z0, 8, constant_two, filler );
+ /*this works 1 % 2 --> 1*/
 
  /*good*/
- z1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(z0, 0)), _mm256_mullo_epi32(_mm256_set1_epi32((_mm256_extract_epi32(t2_storage, 0) >> 58)), constant_two));
- STORE(z1, 0, z0, 0);
+ z1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(z0, 0)), _mm256_set1_epi32((temp[0] >> 58) * 2));
  PRINT(z0);
  printf("\n %s \n", "________________");
- PRINT(t1_storage);
+ PRINT(z1);
  printf("\n%s\n", "________________");
- PRINT(t2_storage);
+ PRINT(z2);
+ printf("\n%s\n", "________________");
+ PRINT(z3);
+ printf("\n %s \n", "________________");
+ PRINT(z4);
+ printf("\n%s\n", "________________");
+ PRINT(z5);
+ printf("\n%s\n", "________________");
+ PRINT(z6);
+ printf("\n %s \n", "________________");
+ PRINT(z7);
+ printf("\n%s\n", "________________");
+ PRINT(z8);
+
+
+
 
 
 
