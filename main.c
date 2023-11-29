@@ -356,7 +356,7 @@ void A()
  /*this works 1 % 2 --> 1*/
 
  /*good*/
- z1 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(z0, 0)), _mm256_set1_epi32((temp[0] >> 58) * 2));
+ z0 = _mm256_add_epi32(_mm256_set1_epi32(_mm256_extract_epi32(z0, 0)), _mm256_set1_epi32((temp[0] >> 58) * 2));
 
 
  PRINT_Z(z0);
