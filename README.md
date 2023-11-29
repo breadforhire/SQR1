@@ -11,7 +11,7 @@ where z ≡ x^2 (mod t^9 − 2)
 
 
 
-z ≡ x2(mod t9 − 2)
+
 
 
 
